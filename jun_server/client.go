@@ -56,7 +56,7 @@ func Stop(distName string) {
 		return
 	}
 	distMod.(*Module).ChanExit <- ExitSig{Reason: ExitReasonNormal}
-	fmt.Println("sssssssssssssssssss")
+	//fmt.Println("sssssssssssssssssss")
 	//mods.Delete(distName)
 }
 

@@ -13,7 +13,7 @@ var mods sync.Map
 
 var wg sync.WaitGroup
 
-func Start(name string, mod ModuleBehavior, state interface{}) {
+func Start(name string, mod ModuleBehavior,closeSig chan ExitSig,  state interface{}) {
 	wg.Add(1)
 	//closeSig := make(chan ExitSig)
 	go func() {
@@ -34,7 +34,7 @@ func Start(name string, mod ModuleBehavior, state interface{}) {
 		}
 		mods.Store(name, m)
 
-		m.Start()
+		m.Start(closeSig)
 		fmt.Println("process exit:", name)
 		mods.Delete(name)
 		wg.Done()
@@ -64,18 +64,22 @@ type Module struct {
 	dispatcher  *jun_timer.Dispatcher
 }
 
-func (m *Module) Start() {
+func (m *Module) Start(closeSig chan ExitSig) {
 	m.Mod.Start(m.State)
-	m.loop()
+	m.loop(closeSig)
 }
-func (m *Module) loop() {
+func (m *Module) loop(closeSig chan ExitSig) {
 
 	defer func() {
 		if msg := recover(); msg != nil {
 
 			fmt.Println("调用栈:%v", string(debug.Stack()), msg)
 			fmt.Println("进程Panic退出，执行Terminate,退出原因")
-			//closeSig <- ExitSig{Reason: ExitReasonPanic, Data: msg}
+
+			if closeSig != nil {
+				closeSig <- ExitSig{Reason: ExitReasonPanic, Data: msg}
+			}
+
 			m.Mod.Terminate(m.State)
 		} else {
 			fmt.Println("进程退出：", m.State)
@@ -91,7 +95,9 @@ func (m *Module) loop() {
 		case exitInfo := <-m.ChanExit:
 			fmt.Println("进程退出，执行Terminate,退出原因:", exitInfo.Reason)
 			m.Mod.Terminate(m.State)
-			//closeSig <- exitInfo
+			if closeSig != nil {
+				closeSig <- exitInfo
+			}
 			fmt.Println("发送退出消息", exitInfo)
 
 			return
