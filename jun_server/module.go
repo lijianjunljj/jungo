@@ -13,7 +13,7 @@ var mods sync.Map
 
 var wg sync.WaitGroup
 
-func Start(name string, mod ModuleBehavior,closeSig chan ExitSig,  state interface{}) {
+func Start(name string, mod ModuleBehavior, closeSig chan ExitSig, state interface{}) {
 	wg.Add(1)
 	//closeSig := make(chan ExitSig)
 	go func() {
@@ -28,7 +28,7 @@ func Start(name string, mod ModuleBehavior,closeSig chan ExitSig,  state interfa
 			ChanCast:    make(chan CastInfo, 100),
 			ChanCallRet: make(chan CallRet),
 			ChanExit:    make(chan ExitSig),
-			CastRouter: make(map[string]func(interface{},interface{})),
+			CastRouter:  make(map[interface{}]func([]interface{})),
 			dispatcher:  &jun_timer.Dispatcher{ChanTimer: make(chan *jun_timer.Timer, 10)},
 			ModuleName:  name,
 			Mod:         mod,
@@ -56,8 +56,8 @@ func StopAll() {
 
 type Module struct {
 	ModuleName  string
-	CallRouter map[string]func(interface{},interface{})*CallRet
-	CastRouter map[string]func(interface{},interface{})
+	CallRouter  map[string]func(interface{}, interface{}) *CallRet
+	CastRouter  map[interface{}]func([]interface{})
 	ChanCall    chan CallInfo
 	ChanCallRet chan CallRet
 	ChanCast    chan CastInfo
@@ -66,12 +66,13 @@ type Module struct {
 	Mod         ModuleBehavior
 	dispatcher  *jun_timer.Dispatcher
 }
-func (m *Module) RegisterCast(key string,f func(interface{},interface{})){
+
+func (m *Module) RegisterCast(key interface{}, f func(args []interface{})) {
 	m.CastRouter[key] = f
 }
-func (m *Module) HandlerCast(key string,msg interface{},state interface{}){
-	if _,ok := m.CastRouter[key];ok {
-		m.CastRouter[key](msg,state)
+func (m *Module) HandlerCast(key interface{}, state interface{}, msg interface{}) {
+	if _, ok := m.CastRouter[key]; ok {
+		m.CastRouter[key]([]interface{}{state, msg})
 	}
 }
 func (m *Module) Start(closeSig chan ExitSig) {
@@ -100,10 +101,10 @@ func (m *Module) loop(closeSig chan ExitSig) {
 	for {
 		select {
 		//case callInfo := <-m.ChanCall:
-			//m.Mod.HandlerCall(callInfo, m.State)
+		//m.Mod.HandlerCall(callInfo, m.State)
 		case castInfo := <-m.ChanCast:
 			//m.Mod.HandlerCast(castInfo, m.State)
-			m.HandlerCast(castInfo.Key,castInfo.Msg, m.State)
+			m.HandlerCast(castInfo.Key, m.State, castInfo.Msg)
 		case exitInfo := <-m.ChanExit:
 			fmt.Println("进程退出，执行Terminate,退出原因:", exitInfo.Reason)
 			m.Mod.Terminate(m.State)

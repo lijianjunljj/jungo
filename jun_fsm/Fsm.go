@@ -90,13 +90,15 @@ func (that *Fsm) SwitchStates(states []*State) {
 func (that *Fsm) Start(arg ...interface{}) {
 	fmt.Println("start............")
 	roomId := arg[0].(string)
-	jun_server.SendAfter(1*time.Second, roomId, "loop",nil)
+	jun_server.SendAfter(1*time.Second, roomId, "loop", nil)
 }
-func (s *Fsm) RegisterEvent(m *jun_server.Module){
-	m.RegisterCast("loop",s.HandlerLoop)
+func (s *Fsm) RegisterEvent(m *jun_server.Module) {
+	m.RegisterCast("loop", s.HandlerLoop)
 }
-func (s *Fsm) HandlerLoop(data interface{},state interface{}){
-	jun_server.SendAfter(1*time.Second, state.(string),"loop",data)
+func (s *Fsm) HandlerLoop(args []interface{}) {
+	state := args[0]
+	data := args[1]
+	jun_server.SendAfter(1*time.Second, state.(string), "loop", data)
 	s.Loop()
 }
 
