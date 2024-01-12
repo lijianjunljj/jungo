@@ -28,6 +28,7 @@ func Start(name string, mod ModuleBehavior,closeSig chan ExitSig,  state interfa
 			ChanCast:    make(chan CastInfo, 100),
 			ChanCallRet: make(chan CallRet),
 			ChanExit:    make(chan ExitSig),
+			CastRouter: make(map[string]func(interface{},interface{})),
 			dispatcher:  &jun_timer.Dispatcher{ChanTimer: make(chan *jun_timer.Timer, 10)},
 			ModuleName:  name,
 			Mod:         mod,
@@ -55,6 +56,8 @@ func StopAll() {
 
 type Module struct {
 	ModuleName  string
+	CallRouter map[string]func(interface{},interface{})*CallRet
+	CastRouter map[string]func(interface{},interface{})
 	ChanCall    chan CallInfo
 	ChanCallRet chan CallRet
 	ChanCast    chan CastInfo
@@ -63,8 +66,16 @@ type Module struct {
 	Mod         ModuleBehavior
 	dispatcher  *jun_timer.Dispatcher
 }
-
+func (m *Module) RegisterCast(key string,f func(interface{},interface{})){
+	m.CastRouter[key] = f
+}
+func (m *Module) HandlerCast(key string,msg interface{},state interface{}){
+	if _,ok := m.CastRouter[key];ok {
+		m.CastRouter[key](msg,state)
+	}
+}
 func (m *Module) Start(closeSig chan ExitSig) {
+	m.Mod.RegisterEvent(m)
 	m.Mod.Start(m.State)
 	m.loop(closeSig)
 }
@@ -88,10 +99,11 @@ func (m *Module) loop(closeSig chan ExitSig) {
 
 	for {
 		select {
-		case callInfo := <-m.ChanCall:
-			m.Mod.HandlerCall(callInfo, m.State)
+		//case callInfo := <-m.ChanCall:
+			//m.Mod.HandlerCall(callInfo, m.State)
 		case castInfo := <-m.ChanCast:
-			m.Mod.HandlerCast(castInfo, m.State)
+			//m.Mod.HandlerCast(castInfo, m.State)
+			m.HandlerCast(castInfo.Key,castInfo.Msg, m.State)
 		case exitInfo := <-m.ChanExit:
 			fmt.Println("进程退出，执行Terminate,退出原因:", exitInfo.Reason)
 			m.Mod.Terminate(m.State)

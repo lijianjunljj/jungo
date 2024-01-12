@@ -2,7 +2,6 @@ package jun_server
 
 import (
 	"fmt"
-	"time"
 )
 
 func TestGenServer() {
@@ -21,19 +20,19 @@ type server struct {
 	ModuleBehavior
 }
 
-func (s *server) Start(args ...interface{}) {
-	data := args[0]
-	fmt.Println("start:", data)
-	SendAfter(1*time.Second, "server", "loop")
-}
-func (s *server) HandlerCall(callInfo CallInfo, data interface{}) {
-	fmt.Println("HandlerCall:", callInfo, data)
-
-}
-func (s *server) HandlerCast(castInfo CastInfo, data interface{}) {
-	fmt.Println("HandlerCast:", castInfo, data)
-	SendAfter(1*time.Second, "server", "loop")
-}
+//func (s *server) Start(args ...interface{}) {
+//	data := args[0]
+//	fmt.Println("start:", data)
+//	SendAfter(1*time.Second, "server", "loop")
+//}
+//func (s *server) HandlerCall(callInfo CallInfo, data interface{}) {
+//	fmt.Println("HandlerCall:", callInfo, data)
+//
+//}
+//func (s *server) HandlerCast(castInfo CastInfo, data interface{}) {
+//	fmt.Println("HandlerCast:", castInfo, data)
+//	SendAfter(1*time.Second, "server", "loop")
+//}
 func (s *server) Terminate(data interface{}) {
 	fmt.Println("Terminate:", data)
 }

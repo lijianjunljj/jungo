@@ -20,10 +20,12 @@ type CallRet struct {
 	ret interface{}
 }
 type CallInfo struct {
+	Key string
 	srcName string
 	msg     interface{}
 }
 type CastInfo struct {
+	Key string
 	Msg interface{}
 }
 
@@ -41,12 +43,12 @@ func Call(srcName, distName string, msg interface{}) CallRet {
 	return retInfo
 }
 
-func Cast(distName string, msg interface{}) {
+func Cast(distName ,key string, msg interface{}) {
 	distMod, ok := mods.Load(distName)
 	if !ok {
 		return
 	}
-	distMod.(*Module).ChanCast <- CastInfo{Msg: msg}
+	distMod.(*Module).ChanCast <- CastInfo{Key:key,Msg: msg}
 }
 
 func Stop(distName string) {
@@ -60,12 +62,12 @@ func Stop(distName string) {
 	//mods.Delete(distName)
 }
 
-func SendAfter(d time.Duration, distName string, msg interface{}) {
+func SendAfter(d time.Duration, distName,key string, msg interface{}) {
 	distMod, ok := mods.Load(distName)
 	if !ok {
 		return
 	}
 	distMod.(*Module).AfterFunc(d, func() {
-		Cast(distName, msg)
+		Cast(distName, key,msg)
 	})
 }
