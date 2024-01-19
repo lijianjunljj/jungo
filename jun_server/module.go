@@ -1,8 +1,8 @@
 package jun_server
 
 import (
-	"errors"
 	"fmt"
+	"github.com/lijianjunljj/jungo/jun_log"
 	"github.com/lijianjunljj/jungo/jun_timer"
 	"runtime/debug"
 	"sync"
@@ -20,7 +20,7 @@ func Start(name string, mod ModuleBehavior, closeSig chan ExitSig, state interfa
 
 		_, ok := mods.Load(name)
 		if ok {
-			fmt.Println(errors.New("module has started"))
+			jun_log.Error("module has started")
 			return
 		}
 		m := &Module{State: state,
@@ -106,12 +106,12 @@ func (m *Module) loop(closeSig chan ExitSig) {
 			//m.Mod.HandlerCast(castInfo, m.State)
 			m.HandlerCast(castInfo.Key, m.State, castInfo.Msg)
 		case exitInfo := <-m.ChanExit:
-			fmt.Println("进程退出，执行Terminate,退出原因:", exitInfo.Reason)
+			fmt.Println("进程退出，执行Terminate,退出原因:", m.State, exitInfo.Reason)
 			m.Mod.Terminate(m.State)
 			if closeSig != nil {
 				closeSig <- exitInfo
 			}
-			fmt.Println("发送退出消息", exitInfo)
+			fmt.Println("发送退出消息",  m.State,exitInfo)
 
 			return
 		case t := <-m.dispatcher.ChanTimer:
