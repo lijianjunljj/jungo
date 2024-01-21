@@ -28,7 +28,7 @@ func Start(name string, mod ModuleBehavior, closeSig chan ExitSig, state interfa
 			ChanCast:    make(chan CastInfo, 100),
 			ChanCallRet: make(chan CallRet),
 			ChanExit:    make(chan ExitSig),
-			CastRouter:  make(map[interface{}]func([]interface{})),
+			CastRouter:  make(map[interface{}]func(interface{}, ...interface{})),
 			dispatcher:  &jun_timer.Dispatcher{ChanTimer: make(chan *jun_timer.Timer, 10)},
 			ModuleName:  name,
 			Mod:         mod,
@@ -49,7 +49,7 @@ func StopAll() {
 	wg.Wait()
 }
 
-func StopAllServer()  {
+func StopAllServer() {
 	mods.Range(func(key, value any) bool {
 		ModeName := key.(string)
 		fmt.Println("modName", ModeName)
@@ -61,7 +61,7 @@ func StopAllServer()  {
 type Module struct {
 	ModuleName  string
 	CallRouter  map[string]func(interface{}, interface{}) *CallRet
-	CastRouter  map[interface{}]func([]interface{})
+	CastRouter  map[interface{}]func(interface{}, ...interface{})
 	ChanCall    chan CallInfo
 	ChanCallRet chan CallRet
 	ChanCast    chan CastInfo
@@ -71,12 +71,12 @@ type Module struct {
 	dispatcher  *jun_timer.Dispatcher
 }
 
-func (m *Module) RegisterCast(key interface{}, f func(args []interface{})) {
+func (m *Module) RegisterCast(key interface{}, f func(interface{}, ...interface{})) {
 	m.CastRouter[key] = f
 }
 func (m *Module) HandlerCast(key interface{}, state interface{}, msg interface{}) {
 	if _, ok := m.CastRouter[key]; ok {
-		m.CastRouter[key]([]interface{}{state, msg})
+		m.CastRouter[key](state, msg)
 	}
 }
 func (m *Module) Start(closeSig chan ExitSig) {
@@ -115,7 +115,7 @@ func (m *Module) loop(closeSig chan ExitSig) {
 			if closeSig != nil {
 				closeSig <- exitInfo
 			}
-			fmt.Println("发送退出消息",  m.State,exitInfo)
+			fmt.Println("发送退出消息", m.State, exitInfo)
 
 			return
 		case t := <-m.dispatcher.ChanTimer:

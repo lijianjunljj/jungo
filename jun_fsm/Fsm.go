@@ -95,9 +95,8 @@ func (that *Fsm) Start(arg ...interface{}) {
 func (s *Fsm) RegisterEvent(m *jun_server.Module) {
 	m.RegisterCast("loop", s.HandlerLoop)
 }
-func (s *Fsm) HandlerLoop(args []interface{}) {
-	state := args[0]
-	data := args[1]
+func (s *Fsm) HandlerLoop(state interface{}, args ...interface{}) {
+	data := args[0]
 	jun_server.SendAfter(1*time.Second, state.(string), "loop", data)
 	s.Loop()
 }
