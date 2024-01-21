@@ -45,13 +45,17 @@ func Start(name string, mod ModuleBehavior, closeSig chan ExitSig, state interfa
 }
 
 func StopAll() {
+	StopAllServer()
+	wg.Wait()
+}
+
+func StopAllServer()  {
 	mods.Range(func(key, value any) bool {
 		ModeName := key.(string)
 		fmt.Println("modName", ModeName)
 		Stop(ModeName)
 		return true
 	})
-	wg.Wait()
 }
 
 type Module struct {

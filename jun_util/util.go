@@ -5,6 +5,7 @@ import (
 	"math/rand"
 	"net"
 	"reflect"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -50,4 +51,31 @@ func GetHostIp() string {
 	addr := conn.LocalAddr().(*net.UDPAddr)
 	ip := strings.Split(addr.String(), ":")[0]
 	return ip
+}
+func getIpPorts(start, nums int) []int {
+	// 根据接收参数个数，定义动态数组，
+	var ip_ports []int
+	for i := 0; i < nums; i++ {
+		ip_ports = append(ip_ports, start+i)
+	}
+	return ip_ports
+}
+
+func CheckPorts(ip_ports []int) (port string) {
+	for _, ip_port := range ip_ports {
+		conn, err := net.DialTimeout("tcp", strconv.Itoa(ip_port), 3*time.Second)
+		if err != nil {
+			port = strconv.Itoa(ip_port)
+			return
+		}
+		if conn != nil {
+			conn.Close()
+			continue
+		} else {
+			port = strconv.Itoa(ip_port)
+			return
+		}
+
+	}
+	return port
 }
