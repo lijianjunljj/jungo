@@ -22,7 +22,7 @@ func NewFsm(data *CustomData, states []*State) *Fsm {
 }
 
 type Fsm struct {
-	jun_server.ModuleBehavior
+	jun_server.Server
 	lock          sync.RWMutex
 	loopState     *LoopState
 	currSateIndex int
@@ -92,8 +92,8 @@ func (that *Fsm) Start(arg ...interface{}) {
 	roomId := arg[0].(string)
 	jun_server.SendAfter(1*time.Second, roomId, "loop", nil)
 }
-func (s *Fsm) RegisterEvent(m *jun_server.Module) {
-	m.RegisterCast("loop", s.HandlerLoop)
+func (s *Fsm) RegisterEvent() {
+	s.RegisterCast("loop", s.HandlerLoop)
 }
 func (s *Fsm) HandlerLoop(state interface{}, args ...interface{}) {
 	data := args[0]

@@ -9,15 +9,52 @@ import (
 	"time"
 )
 
+type Server struct {
+	ModuleBehavior
+	ServerName string
+	m          *Module
+	CloseSig   chan ExitSig
+	State      interface{}
+}
+func (s *Server) GetServerName() string{
+	return s.ServerName
+}
+func (s *Server) GetState() interface{}{
+	return s.State
+}
+func (s *Server) SetModule(m *Module) {
+	s.m = m
+}
+func (s *Server) GetCloseSig() chan ExitSig{
+	return s.CloseSig
+}
+
+
+func (s *Server) RegisterCast(key interface{}, f func(interface{}, ...interface{})){
+	s.m.RegisterCast(key,f)
+}
+type NewServer func() ModuleBehavior
+
 var mods sync.Map
 
 var wg sync.WaitGroup
 
-func Start(name string, mod ModuleBehavior, closeSig chan ExitSig, state interface{}) {
+func Start(newServer NewServer) {
+	serv := newServer()
+	name := serv.GetServerName()
+	closeSig := serv.GetCloseSig()
+	state := serv.GetState()
+	Run(name,serv,closeSig,state)
+}
+
+func Run(name string,serv ModuleBehavior, closeSig chan ExitSig,state interface{})  {
 	wg.Add(1)
 	//closeSig := make(chan ExitSig)
 	go func() {
-
+		if name == "" {
+			jun_log.Error("server name not empty")
+			return
+		}
 		_, ok := mods.Load(name)
 		if ok {
 			jun_log.Error("module has started")
@@ -31,8 +68,9 @@ func Start(name string, mod ModuleBehavior, closeSig chan ExitSig, state interfa
 			CastRouter:  make(map[interface{}]func(interface{}, ...interface{})),
 			dispatcher:  &jun_timer.Dispatcher{ChanTimer: make(chan *jun_timer.Timer, 10)},
 			ModuleName:  name,
-			Mod:         mod,
+			Mod:         serv,
 		}
+		serv.SetModule(m)
 		mods.Store(name, m)
 
 		m.Start(closeSig)
@@ -40,8 +78,6 @@ func Start(name string, mod ModuleBehavior, closeSig chan ExitSig, state interfa
 		mods.Delete(name)
 		wg.Done()
 	}()
-	//<-closeSig
-
 }
 
 func StopAll() {
@@ -80,7 +116,7 @@ func (m *Module) HandlerCast(key interface{}, state interface{}, msg interface{}
 	}
 }
 func (m *Module) Start(closeSig chan ExitSig) {
-	m.Mod.RegisterEvent(m)
+	m.Mod.RegisterEvent()
 	m.Mod.Start(m.State)
 	m.loop(closeSig)
 }
