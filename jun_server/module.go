@@ -1,6 +1,7 @@
 package jun_server
 
 import (
+	"errors"
 	"fmt"
 	"github.com/lijianjunljj/jungo/jun_log"
 	"github.com/lijianjunljj/jungo/jun_timer"
@@ -16,23 +17,27 @@ type Server struct {
 	CloseSig   chan ExitSig
 	State      interface{}
 }
-func (s *Server) GetServerName() string{
+
+func (s *Server) GetServerName() string {
 	return s.ServerName
 }
-func (s *Server) GetState() interface{}{
+func (s *Server) GetState() interface{} {
 	return s.State
 }
 func (s *Server) SetModule(m *Module) {
 	s.m = m
 }
-func (s *Server) GetCloseSig() chan ExitSig{
+func (s *Server) GetCloseSig() chan ExitSig {
 	return s.CloseSig
 }
 
-
-func (s *Server) RegisterCast(key interface{}, f func(interface{}, ...interface{})){
-	s.m.RegisterCast(key,f)
+func (s *Server) RegisterCast(key interface{}, f func(interface{}, ...interface{})) {
+	s.m.RegisterCast(key, f)
 }
+func (s *Server) RegisterCall(key interface{}, f func(interface{}, ...interface{}) *CallRet) {
+	s.m.RegisterCall(key, f)
+}
+
 type NewServer func() ModuleBehavior
 
 var mods sync.Map
@@ -44,22 +49,25 @@ func Start(newServer NewServer) {
 	name := serv.GetServerName()
 	closeSig := serv.GetCloseSig()
 	state := serv.GetState()
-	Run(name,serv,closeSig,state)
+	Run(name, serv, closeSig, state)
 }
 
-func Run(name string,serv ModuleBehavior, closeSig chan ExitSig,state interface{})  {
-	wg.Add(1)
+func Run(name string, serv ModuleBehavior, closeSig chan ExitSig, state interface{}) error {
+
 	//closeSig := make(chan ExitSig)
+	if name == "" {
+		err := errors.New("server name not empty")
+		jun_log.Error(err.Error())
+		return err
+	}
+	_, ok := mods.Load(name)
+	if ok {
+		err := errors.New("module has started")
+		jun_log.Error(err.Error())
+		return err
+	}
 	go func() {
-		if name == "" {
-			jun_log.Error("server name not empty")
-			return
-		}
-		_, ok := mods.Load(name)
-		if ok {
-			jun_log.Error("module has started")
-			return
-		}
+		wg.Add(1)
 		m := &Module{State: state,
 			ChanCall:    make(chan CallInfo),
 			ChanCast:    make(chan CastInfo, 100),
@@ -78,6 +86,7 @@ func Run(name string,serv ModuleBehavior, closeSig chan ExitSig,state interface{
 		mods.Delete(name)
 		wg.Done()
 	}()
+	return nil
 }
 
 func StopAll() {
@@ -96,7 +105,7 @@ func StopAllServer() {
 
 type Module struct {
 	ModuleName  string
-	CallRouter  map[string]func(interface{}, interface{}) *CallRet
+	CallRouter  map[interface{}]func(interface{}, ...interface{}) *CallRet
 	CastRouter  map[interface{}]func(interface{}, ...interface{})
 	ChanCall    chan CallInfo
 	ChanCallRet chan CallRet
@@ -110,10 +119,21 @@ type Module struct {
 func (m *Module) RegisterCast(key interface{}, f func(interface{}, ...interface{})) {
 	m.CastRouter[key] = f
 }
+
+func (m *Module) RegisterCall(key interface{}, f func(interface{}, ...interface{}) *CallRet) {
+	m.CallRouter[key] = f
+}
+
 func (m *Module) HandlerCast(key interface{}, state interface{}, msg interface{}) {
 	if _, ok := m.CastRouter[key]; ok {
 		m.CastRouter[key](state, msg)
 	}
+}
+func (m *Module) HandlerCall(key interface{}, state interface{}, msg interface{}) *CallRet {
+	if _, ok := m.CastRouter[key]; ok {
+		return m.CallRouter[key](state, msg)
+	}
+	return nil
 }
 func (m *Module) Start(closeSig chan ExitSig) {
 	m.Mod.RegisterEvent()
@@ -140,8 +160,11 @@ func (m *Module) loop(closeSig chan ExitSig) {
 
 	for {
 		select {
-		//case callInfo := <-m.ChanCall:
-		//m.Mod.HandlerCall(callInfo, m.State)
+		case callInfo := <-m.ChanCall:
+			go func() {
+				retInfo := m.HandlerCall(callInfo.Key, m.State, callInfo.msg)
+				callInfo.replyChan <- *retInfo
+			}()
 		case castInfo := <-m.ChanCast:
 			//m.Mod.HandlerCast(castInfo, m.State)
 			m.HandlerCast(castInfo.Key, m.State, castInfo.Msg)

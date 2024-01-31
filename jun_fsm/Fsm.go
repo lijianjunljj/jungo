@@ -87,9 +87,9 @@ func (that *Fsm) SwitchStates(states []*State) {
 	that.states = states
 }
 
-func (that *Fsm) Start(arg ...interface{}) {
+func (that *Fsm) Start(arg interface{}) {
 	fmt.Println("start............")
-	roomId := arg[0].(string)
+	roomId := arg.(string)
 	jun_server.SendAfter(1*time.Second, roomId, "loop", nil)
 }
 func (s *Fsm) RegisterEvent() {

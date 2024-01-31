@@ -127,9 +127,7 @@ func (p *Processor) Route(msg interface{}, userData interface{}) error {
 		i.msgHandler([]interface{}{msg, userData})
 	}
 	if i.msgRouterName != "" {
-
 		jun_server.Cast(i.msgRouterName, msgType, []interface{}{msg, userData})
-		//i.msgRouter.Go(msgType, msg, userData)
 	}
 	return nil
 }

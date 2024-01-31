@@ -32,7 +32,9 @@ func (client *WSClient) Start() {
 		go client.connect()
 	}
 }
-
+func (client *WSClient) Wait() {
+	client.wg.Wait()
+}
 func (client *WSClient) init() {
 	client.Lock()
 	defer client.Unlock()

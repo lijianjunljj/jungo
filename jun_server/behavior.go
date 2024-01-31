@@ -1,7 +1,7 @@
 package jun_server
 
 type ModuleBehavior interface {
-	Start(...interface{})
+	Start(interface{})
 	RegisterEvent()
 	GetServerName() string
 	SetModule(*Module)

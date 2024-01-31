@@ -20,26 +20,35 @@ type CallRet struct {
 	ret interface{}
 }
 type CallInfo struct {
-	Key     string
-	srcName string
-	msg     interface{}
+	Id        string
+	Key       string
+	replyChan chan CallRet
+	msg       interface{}
 }
 type CastInfo struct {
 	Key interface{}
 	Msg interface{}
 }
 
-func Call(srcName, distName string, msg interface{}) CallRet {
+func SyncCall(distName string, msg interface{}) CallRet {
+	return CallLocal(distName, msg)
+}
+
+func AsyncCall(distName string, msg interface{}, f func(CallRet)) {
+	go func() {
+		retInfo := CallLocal(distName, msg)
+		f(retInfo)
+	}()
+}
+
+func CallLocal(distName string, msg interface{}) CallRet {
 	distMod, ok := mods.Load(distName)
 	if !ok {
 		return CallRet{err: fmt.Errorf("dist mod not started:%s", distMod)}
 	}
-	srcMod, ok := mods.Load(srcName)
-	if !ok {
-		return CallRet{err: fmt.Errorf("src dist mod not started:%s", srcMod)}
-	}
-	distMod.(*Module).ChanCall <- CallInfo{srcName: srcName, msg: msg}
-	retInfo := <-srcMod.(*Module).ChanCallRet
+	callInfo := CallInfo{replyChan: make(chan CallRet), msg: msg}
+	distMod.(*Module).ChanCall <- callInfo
+	retInfo := <-callInfo.replyChan
 	return retInfo
 }
 

@@ -52,7 +52,7 @@ func GetHostIp() string {
 	ip := strings.Split(addr.String(), ":")[0]
 	return ip
 }
-func getIpPorts(start, nums int) []int {
+func GetIpPorts(start, nums int) []int {
 	// 根据接收参数个数，定义动态数组，
 	var ip_ports []int
 	for i := 0; i < nums; i++ {
