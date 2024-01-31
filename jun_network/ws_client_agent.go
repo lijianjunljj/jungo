@@ -17,7 +17,6 @@ func (wsa *WsClientAgent) SendMsg(msg interface{}) {
 	wsa.SendMsg(msg)
 }
 func (wsa *WsClientAgent) Run() {
-	wsa.SendMsg(&gamemsg.LoginTos{})
 	for {
 		data, err := wsa.Conn.ReadMsg()
 		if err != nil {
