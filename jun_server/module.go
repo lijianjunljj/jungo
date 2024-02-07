@@ -21,6 +21,10 @@ type Server struct {
 func (s *Server) GetServerName() string {
 	return s.ServerName
 }
+func (s *Server) SetServerName(serverName string)  {
+	s.ServerName = serverName
+}
+
 func (s *Server) GetState() interface{} {
 	return s.State
 }
@@ -79,6 +83,7 @@ func Run(name string, serv ModuleBehavior, closeSig chan ExitSig, state interfac
 			Mod:         serv,
 		}
 		serv.SetModule(m)
+		serv.SetServerName(name)
 		mods.Store(name, m)
 
 		m.Start(closeSig)

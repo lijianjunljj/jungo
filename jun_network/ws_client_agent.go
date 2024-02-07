@@ -13,10 +13,16 @@ type WsClientAgent struct {
 	MsgRouterName string
 }
 
-func (wsa *WsClientAgent) SendMsg(msg interface{}) {
-	wsa.SendMsg(msg)
+func (wsa *WsClientAgent) SendMsg(msg interface{}) error {
+	data, err := wsa.Processor.Marshal(msg)
+	if err != nil {
+		return err
+	}
+	wsa.Conn.WriteMsg(data...)
+	return nil
 }
 func (wsa *WsClientAgent) Run() {
+	jun_server.Cast(wsa.MsgRouterName, "NewAgent", wsa)
 	for {
 		data, err := wsa.Conn.ReadMsg()
 		if err != nil {
@@ -26,14 +32,14 @@ func (wsa *WsClientAgent) Run() {
 		msg, err := wsa.Processor.Unmarshal(data)
 		if err != nil {
 			fmt.Println("Unmarshal Error:", err)
-			return
+			continue
 		}
 		err = wsa.Processor.Route(msg, wsa)
 		if err != nil {
 			jun_log.Debug("route message error: %v", err)
 			break
 		}
-		fmt.Println("ReadMsg Ok:", msg)
+		//fmt.Println("ReadMsg Ok:", msg)
 	}
 
 	//jun_server.Run()

@@ -52,7 +52,7 @@ func (client *WSClient) init() {
 		jun_log.Release("invalid PendingWriteNum, reset to %v", client.PendingWriteNum)
 	}
 	if client.MaxMsgLen <= 0 {
-		client.MaxMsgLen = 4096
+		client.MaxMsgLen = 10 * 4096
 		jun_log.Release("invalid MaxMsgLen, reset to %v", client.MaxMsgLen)
 	}
 	if client.HandshakeTimeout <= 0 {

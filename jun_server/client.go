@@ -63,12 +63,10 @@ func Cast(distName, key interface{}, msg interface{}) {
 func Stop(distName string) {
 	go func() {
 		distMod, ok := mods.Load(distName)
-		fmt.Println("distMod, ok:", distMod, ok)
 		if !ok {
 			return
 		}
 		distMod.(*Module).ChanExit <- ExitSig{Reason: ExitReasonNormal}
-		fmt.Println("sssssssssssssssssss")
 	}()
 
 }

@@ -25,7 +25,9 @@ func StructAssign(binding interface{}, value interface{}) {
 		}
 	}
 }
-func Shuffle(vals []int32) {
+
+
+func Shuffle[T any](vals []T) {
 	r := rand.New(rand.NewSource(time.Now().Unix()))
 	for len(vals) > 0 {
 		n := len(vals)
@@ -34,7 +36,7 @@ func Shuffle(vals []int32) {
 		vals = vals[:n-1]
 	}
 }
-func InArray(arr []int32, target int32) bool {
+func InArray(arr []interface{}, target interface{}) bool {
 	for _, num := range arr {
 		if num == target {
 			return true

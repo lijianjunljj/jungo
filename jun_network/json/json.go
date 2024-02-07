@@ -50,7 +50,7 @@ func (p *Processor) Register(msg interface{}) string {
 		log.Fatal("unnamed json message")
 	}
 	if _, ok := p.msgInfo[msgID]; ok {
-		log.Fatal("message %v is already registered", msgID)
+		log.Fatalf("message %v is already registered", msgID)
 	}
 
 	i := new(MsgInfo)
@@ -68,7 +68,7 @@ func (p *Processor) SetRouter(msg interface{}, msgRouterName string) {
 	msgID := msgType.Elem().Name()
 	i, ok := p.msgInfo[msgID]
 	if !ok {
-		log.Fatal("message %v not registered", msgID)
+		log.Fatalf("message %v not registered", msgID)
 	}
 
 	i.msgRouterName = msgRouterName
@@ -83,7 +83,7 @@ func (p *Processor) SetHandler(msg interface{}, msgHandler MsgHandler) {
 	msgID := msgType.Elem().Name()
 	i, ok := p.msgInfo[msgID]
 	if !ok {
-		log.Fatal("message %v not registered", msgID)
+		log.Fatalf("message %v not registered", msgID)
 	}
 
 	i.msgHandler = msgHandler
@@ -93,7 +93,7 @@ func (p *Processor) SetHandler(msg interface{}, msgHandler MsgHandler) {
 func (p *Processor) SetRawHandler(msgID string, msgRawHandler MsgHandler) {
 	i, ok := p.msgInfo[msgID]
 	if !ok {
-		log.Fatal("message %v not registered", msgID)
+		log.Fatalf("message %v not registered", msgID)
 	}
 
 	i.msgRawHandler = msgRawHandler
