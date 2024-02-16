@@ -26,7 +26,6 @@ func StructAssign(binding interface{}, value interface{}) {
 	}
 }
 
-
 func Shuffle[T any](vals []T) {
 	r := rand.New(rand.NewSource(time.Now().Unix()))
 	for len(vals) > 0 {
@@ -65,7 +64,9 @@ func GetIpPorts(start, nums int) []int {
 
 func CheckPorts(ip_ports []int) (port string) {
 	for _, ip_port := range ip_ports {
-		conn, err := net.DialTimeout("tcp", strconv.Itoa(ip_port), 3*time.Second)
+		conn, err := net.DialTimeout("tcp", "127.0.0.1:"+strconv.Itoa(ip_port), 3*time.Second)
+
+		//fmt.Println("err:", err)
 		if err != nil {
 			port = strconv.Itoa(ip_port)
 			return

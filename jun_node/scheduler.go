@@ -1,6 +1,8 @@
 package jun_node
 
 import (
+	"fmt"
+	"github.com/lijianjunljj/jungo/jun_log"
 	"github.com/lijianjunljj/jungo/jun_node/client"
 	"github.com/lijianjunljj/jungo/jun_node/conf"
 	"github.com/lijianjunljj/jungo/jun_node/server"
@@ -9,14 +11,14 @@ import (
 )
 
 const (
-	ServerName = "`node_monitor`"
+	ServerName = "`node_scheduler`"
 )
 
 type State struct {
 }
 
 func Start() {
-	//caller.Start(newServer)
+	jun_server.Start(newServer)
 }
 
 type Scheduler struct {
@@ -36,8 +38,20 @@ func newServer() jun_server.ModuleBehavior {
 func (that *Scheduler) Start(interface{}) {
 	port := jun_util.CheckPorts([]int{conf.ServerPort})
 
-	if port == "" {
-
+	fmt.Println("port:", port)
+	if port != "" {
+		if conf.IsCenter {
+			jun_log.Debug("开始启动中心节点")
+		} else {
+			jun_log.Debug("开始启动主节点")
+		}
+		server.Start()
+		if !conf.IsCenter && conf.CenterNodeHost != "" {
+			client.Start(conf.CenterNodeHost)
+		}
+	} else {
+		jun_log.Debug("开始启动从节点")
+		client.Start("127.0.0.1")
 	}
 }
 

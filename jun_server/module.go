@@ -18,10 +18,18 @@ type Server struct {
 	State      interface{}
 }
 
+func (s *Server) Exit(Reason string, data interface{}) {
+	Exit(s.ServerName, Reason, data)
+}
+
+func (s *Server) Stop() {
+	Stop(s.ServerName)
+}
+
 func (s *Server) GetServerName() string {
 	return s.ServerName
 }
-func (s *Server) SetServerName(serverName string)  {
+func (s *Server) SetServerName(serverName string) {
 	s.ServerName = serverName
 }
 
@@ -56,6 +64,17 @@ func Start(newServer NewServer) {
 	Run(name, serv, closeSig, state)
 }
 
+func RunServer(serv ModuleBehavior) error {
+	name := serv.GetServerName()
+	closeSig := serv.GetCloseSig()
+	state := serv.GetState()
+	err := Run(name, serv, closeSig, state)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 func Run(name string, serv ModuleBehavior, closeSig chan ExitSig, state interface{}) error {
 
 	//closeSig := make(chan ExitSig)
@@ -78,6 +97,7 @@ func Run(name string, serv ModuleBehavior, closeSig chan ExitSig, state interfac
 			ChanCallRet: make(chan CallRet),
 			ChanExit:    make(chan ExitSig),
 			CastRouter:  make(map[interface{}]func(interface{}, ...interface{})),
+			CallRouter:  make(map[interface{}]func(interface{}, ...interface{}) *CallRet),
 			dispatcher:  &jun_timer.Dispatcher{ChanTimer: make(chan *jun_timer.Timer, 10)},
 			ModuleName:  name,
 			Mod:         serv,
@@ -132,17 +152,21 @@ func (m *Module) RegisterCall(key interface{}, f func(interface{}, ...interface{
 func (m *Module) HandlerCast(key interface{}, state interface{}, msg interface{}) {
 	if _, ok := m.CastRouter[key]; ok {
 		m.CastRouter[key](state, msg)
+	} else {
+		jun_log.Error("cast %s not found", key)
 	}
 }
 func (m *Module) HandlerCall(key interface{}, state interface{}, msg interface{}) *CallRet {
-	if _, ok := m.CastRouter[key]; ok {
+	if _, ok := m.CallRouter[key]; ok {
 		return m.CallRouter[key](state, msg)
+	} else {
+		jun_log.Error("call %s not found", key)
+		return &CallRet{Error: fmt.Errorf("call %s not found", key)}
 	}
-	return nil
 }
 func (m *Module) Start(closeSig chan ExitSig) {
 	m.Mod.RegisterEvent()
-	m.Mod.Start(m.State)
+	go m.Mod.Start(m.State)
 	m.loop(closeSig)
 }
 func (m *Module) loop(closeSig chan ExitSig) {
@@ -167,6 +191,7 @@ func (m *Module) loop(closeSig chan ExitSig) {
 		select {
 		case callInfo := <-m.ChanCall:
 			go func() {
+				jun_log.Debug("callInfo:", callInfo)
 				retInfo := m.HandlerCall(callInfo.Key, m.State, callInfo.msg)
 				callInfo.replyChan <- *retInfo
 			}()

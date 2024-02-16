@@ -3,7 +3,9 @@ package server
 import (
 	"errors"
 	gate "github.com/lijianjunljj/jungo/jun_gate"
+	"github.com/lijianjunljj/jungo/jun_network/json"
 	"github.com/lijianjunljj/jungo/jun_node/conf"
+	"github.com/lijianjunljj/jungo/jun_node/msg"
 	"github.com/lijianjunljj/jungo/jun_node/node"
 	"github.com/lijianjunljj/jungo/jun_server"
 	"reflect"
@@ -28,6 +30,17 @@ func (s *State) AddNode(nd *node.Node) error {
 	return nil
 }
 
+func (s *State) GetNode(nodeName string) (nd *node.Node) {
+	s.Nodes.Range(func(key, value any) bool {
+		nd = value.(*node.Node)
+		if nd.Name == nodeName {
+			return false
+		}
+		return true
+	})
+	return
+}
+
 type Server struct {
 	jun_server.Server
 	gate     *gate.Gate
@@ -39,27 +52,27 @@ func newServer() jun_server.ModuleBehavior {
 		ServerName: ServerName,
 		State:      &State{},
 	},
+		gate: &gate.Gate{
+			MaxConnNum:      conf.ServerMaxConnNum,
+			PendingWriteNum: conf.PendingWriteNum,
+			MaxMsgLen:       conf.MaxMsgLen,
+			WSAddr:          conf.ServerListenAddr + ":" + strconv.Itoa(conf.ServerPort),
+			HTTPTimeout:     conf.HTTPTimeout,
+			CertFile:        conf.CertFile,
+			KeyFile:         conf.KeyFile,
+			LenMsgLen:       conf.LenMsgLen,
+			LittleEndian:    conf.LittleEndian,
+			Processor:       msg.NewProcessor(),
+			AgentServerName: ServerName,
+		},
 	}
 }
 
 func Start() {
-	//caller.Start(newServer)
+	jun_server.Start(newServer)
 }
 
 func (that *Server) Start(interface{}) {
-	that.gate = &gate.Gate{
-		MaxConnNum:      conf.ServerMaxConnNum,
-		PendingWriteNum: conf.PendingWriteNum,
-		MaxMsgLen:       conf.MaxMsgLen,
-		WSAddr:          conf.ServerListenAddr + ":" + strconv.Itoa(conf.ServerPort),
-		HTTPTimeout:     conf.HTTPTimeout,
-		CertFile:        conf.CertFile,
-		KeyFile:         conf.KeyFile,
-		LenMsgLen:       conf.LenMsgLen,
-		LittleEndian:    conf.LittleEndian,
-		Processor:       Processor,
-		AgentServerName: that.ServerName,
-	}
 	that.closeSig = make(chan bool)
 	go that.gate.Run(that.closeSig)
 }
@@ -67,12 +80,13 @@ func (that *Server) Start(interface{}) {
 func (that *Server) RegisterEvent() {
 	that.RegisterCast("NewAgent", rpcNewAgent)
 	that.RegisterCast("CloseAgent", rpcCloseAgent)
+	that.InitHandler()
 }
 
 func (that *Server) Terminate(interface{}) {
 	that.closeSig <- true
 }
 func (that *Server) handler(m interface{}, h interface{}) {
-	Processor.SetRouter(m, that.ServerName)
+	that.gate.Processor.(*json.Processor).SetRouter(m, that.ServerName)
 	that.RegisterCast(reflect.TypeOf(m), h.(func(interface{}, ...interface{})))
 }

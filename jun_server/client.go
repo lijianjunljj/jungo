@@ -16,8 +16,8 @@ type ExitSig struct {
 }
 
 type CallRet struct {
-	err error
-	ret interface{}
+	Error  error
+	Replay interface{}
 }
 type CallInfo struct {
 	Id        string
@@ -30,24 +30,19 @@ type CastInfo struct {
 	Msg interface{}
 }
 
-func SyncCall(distName string, msg interface{}) CallRet {
-	return CallLocal(distName, msg)
-}
-
-func AsyncCall(distName string, msg interface{}, f func(CallRet)) {
-	go func() {
-		retInfo := CallLocal(distName, msg)
-		f(retInfo)
-	}()
-}
-
-func CallLocal(distName string, msg interface{}) CallRet {
+func Call(distName, key string, msg interface{}) CallRet {
 	distMod, ok := mods.Load(distName)
 	if !ok {
-		return CallRet{err: fmt.Errorf("dist mod not started:%s", distMod)}
+		return CallRet{Error: fmt.Errorf("dist mod not started:%s", distMod)}
+	} else {
+		retInfo := callLocal(key, distMod.(*Module), msg)
+		return retInfo
 	}
-	callInfo := CallInfo{replyChan: make(chan CallRet), msg: msg}
-	distMod.(*Module).ChanCall <- callInfo
+}
+
+func callLocal(key string, distMod *Module, msg interface{}) CallRet {
+	callInfo := CallInfo{Key: key, replyChan: make(chan CallRet), msg: msg}
+	distMod.ChanCall <- callInfo
 	retInfo := <-callInfo.replyChan
 	return retInfo
 }
@@ -68,7 +63,16 @@ func Stop(distName string) {
 		}
 		distMod.(*Module).ChanExit <- ExitSig{Reason: ExitReasonNormal}
 	}()
+}
 
+func Exit(distName, reason string, data interface{}) {
+	go func() {
+		distMod, ok := mods.Load(distName)
+		if !ok {
+			return
+		}
+		distMod.(*Module).ChanExit <- ExitSig{Reason: reason, Data: data}
+	}()
 }
 
 func SendAfter(d time.Duration, distName, key string, msg interface{}) {
