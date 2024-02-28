@@ -2,8 +2,10 @@ package jun_util
 
 import (
 	"fmt"
+	"io/ioutil"
 	"math/rand"
 	"net"
+	"net/http"
 	"reflect"
 	"strconv"
 	"strings"
@@ -43,6 +45,7 @@ func InArray(arr []interface{}, target interface{}) bool {
 	}
 	return false
 }
+
 func GetHostIp() string {
 	conn, err := net.Dial("udp", "8.8.8.8:53")
 	if err != nil {
@@ -52,6 +55,26 @@ func GetHostIp() string {
 	addr := conn.LocalAddr().(*net.UDPAddr)
 	ip := strings.Split(addr.String(), ":")[0]
 	return ip
+}
+
+func GetIPV4() string {
+	resp, err := http.Get("https://ipv4.netarm.com")
+	if err != nil {
+		return ""
+	}
+	defer resp.Body.Close()
+	content, _ := ioutil.ReadAll(resp.Body)
+	return string(content)
+}
+
+func GetIPV6() string {
+	resp, err := http.Get("https://ipv6.netarm.com")
+	if err != nil {
+		return ""
+	}
+	defer resp.Body.Close()
+	content, _ := ioutil.ReadAll(resp.Body)
+	return string(content)
 }
 func GetIpPorts(start, nums int) []int {
 	// 根据接收参数个数，定义动态数组，
