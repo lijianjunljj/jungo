@@ -12,7 +12,11 @@ const (
 	//CodeSuccess 请求成功响应码
 	CodeSuccess = "0000"
 	//CodeFail 请求失败响应码
-	CodeFail = "1001"
+	CodeFail         = "1001"
+	CodeTokenExpired = "1002"
+	//CodeException 系统异常响应码
+	CodeException = "1003"
+	CodeUserBlack = "1004"
 )
 
 // Response 响应结构体
