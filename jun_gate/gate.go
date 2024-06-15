@@ -100,10 +100,10 @@ func (a *agent) Run() {
 			break
 		}
 		if a.gate.Processor != nil {
-			msg, err := a.gate.Processor.Unmarshal(data)
 			if string(data) == "PING" {
 				a.conn.WriteMsg([]byte("PONG"))
 			} else {
+				msg, err := a.gate.Processor.Unmarshal(data)
 				if err != nil {
 					jun_log.Debug("unmarshal message error:%v %v", err, string(data))
 				} else {
