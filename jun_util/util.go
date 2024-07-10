@@ -37,11 +37,23 @@ func Shuffle[T any](vals []T) {
 		vals = vals[:n-1]
 	}
 }
-func InArray(arr []interface{}, target interface{}) bool {
-	for _, num := range arr {
-		if num == target {
-			return true
+func InArray(arr interface{}, target interface{}) bool {
+	switch v := arr.(type) {
+	case []int:
+		for _, item := range v {
+			if item == target {
+				return true
+			}
 		}
+	case []string:
+		for _, item := range v {
+			if item == target {
+				return true
+			}
+		}
+	// 可以根据需要添加更多类型的处理
+	default:
+		fmt.Println("不支持的数组类型")
 	}
 	return false
 }

@@ -16,6 +16,7 @@ type ExitSig struct {
 func NewFsm(data *CustomData, states []*State) *Fsm {
 	data.State = states[0]
 	return &Fsm{
+		skipStateIndex: -1,
 		loopState: &LoopState{customData: data},
 		states:    states,
 	}
@@ -29,6 +30,7 @@ type Fsm struct {
 	states        []*State
 	oldStates     []*State
 	isInit        bool
+	skipStateIndex int
 }
 
 func (that *Fsm) Exit() {
@@ -39,7 +41,10 @@ func (that *Fsm) GetCurrentState() *State {
 	newState := that.states[that.currSateIndex]
 	return newState
 }
-
+func (that *Fsm) UnshiftState(state *State) {
+	that.states = append([]*State{state},that.states...)
+	that.currSateIndex ++
+}
 func (that *Fsm) RemoveState(name string) {
 	var newStates []*State
 	currIndex := 0
@@ -56,17 +61,25 @@ func (that *Fsm) RemoveState(name string) {
 }
 
 func (that *Fsm) NextState() {
+	fmt.Println("NextState:",that.states,that.currSateIndex)
 	state := that.states[that.currSateIndex]
-	if that.currSateIndex >= len(that.states)-1 {
-		that.currSateIndex = 0
-	} else {
-		that.currSateIndex++
-	}
+
 	if state.hookOption.EndFunc != nil {
 		state.hookOption.EndFunc(that, state, that.loopState.customData.Data)
 	}
 
-	newState := that.states[that.currSateIndex]
+	var newState *State
+	if that.skipStateIndex > -1 {
+		that.currSateIndex = that.skipStateIndex
+		that.skipStateIndex = -1
+	}else{
+		if that.currSateIndex >= len(that.states)-1 {
+			that.currSateIndex = 0
+		} else {
+			that.currSateIndex++
+		}
+	}
+	newState = that.states[that.currSateIndex]
 	that.loopState.customData.State = newState
 	newState.Reset()
 	if newState.hookOption.StartFunc != nil {
@@ -103,6 +116,12 @@ func (s *Fsm) HandlerLoop(state interface{}, args ...interface{}) {
 
 func (s *Fsm) Terminate(data interface{}) {
 	fmt.Println("Fsm Terminate:", data)
+}
+func (that *Fsm) ChangeState(stateIndex int) {
+	state := that.states[that.currSateIndex]
+	that.skipStateIndex = stateIndex
+	state.LeftTime = 0
+
 }
 func (that *Fsm) Loop() {
 	if len(that.states) > that.currSateIndex {
