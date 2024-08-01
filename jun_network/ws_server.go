@@ -4,7 +4,6 @@ import (
 	"crypto/tls"
 	"github.com/gorilla/websocket"
 	"github.com/lijianjunljj/jungo/jun_log"
-	"log"
 	"net"
 	"net/http"
 	"sync"
@@ -78,9 +77,10 @@ func (handler *WSHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 func (server *WSServer) Start() {
+	jun_log.Release("websocket启动: %v", server.Addr)
 	ln, err := net.Listen("tcp", server.Addr)
 	if err != nil {
-		log.Fatal("%v", err)
+		jun_log.Fatal("%v", err)
 	}
 
 	if server.MaxConnNum <= 0 {
@@ -100,7 +100,7 @@ func (server *WSServer) Start() {
 		jun_log.Release("invalid HTTPTimeout, reset to %v", server.HTTPTimeout)
 	}
 	if server.NewAgent == nil {
-		log.Fatal("NewAgent must not be nil")
+		jun_log.Fatal("NewAgent must not be nil")
 	}
 
 	if server.CertFile != "" || server.KeyFile != "" {
@@ -111,7 +111,7 @@ func (server *WSServer) Start() {
 		config.Certificates = make([]tls.Certificate, 1)
 		config.Certificates[0], err = tls.LoadX509KeyPair(server.CertFile, server.KeyFile)
 		if err != nil {
-			log.Fatal("%v", err)
+			jun_log.Fatal("%v", err)
 		}
 
 		ln = tls.NewListener(ln, config)
@@ -138,7 +138,12 @@ func (server *WSServer) Start() {
 		MaxHeaderBytes: 1024,
 	}
 
-	go httpServer.Serve(ln)
+	go func() {
+		err = httpServer.Serve(ln)
+		if err != nil {
+			jun_log.Fatal("websocket启动错误 %v:", err)
+		}
+	}()
 }
 
 func (server *WSServer) Close() {

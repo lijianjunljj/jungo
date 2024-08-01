@@ -4,7 +4,7 @@ import (
 	"fmt"
 	network "github.com/lijianjunljj/jungo/jun_network"
 	"github.com/lijianjunljj/jungo/jun_network/json"
-	"github.com/lijianjunljj/jungo/jun_network/test/msg"
+	"github.com/lijianjunljj/jungo/jun_network/test/clent/msg"
 )
 
 func main() {
