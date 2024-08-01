@@ -54,7 +54,7 @@ func (that *GateServer) Terminate(interface{}) {
 }
 
 func (that *GateServer) InitHandler() {
-	that.handler.RouterAll()
+	that.handler.RouterAll(that.Server)
 }
 func rpcNewAgent(state interface{}, args ...interface{}) {
 	a := args[0].(gate.Agent)

@@ -14,17 +14,20 @@ type Handler struct {
 }
 
 func NewHandler(routerKey string, processor network.Processor) Handler {
-	return Handler{
+	hd := Handler{
 		routerKey: routerKey,
 		Processor: processor,
 	}
+	hd.routerMap = make(map[interface{}]interface{})
+	return hd
 }
 
 func (that *Handler) Register(m interface{}, h interface{}) {
 	that.routerMap[m] = h
 }
 
-func (that *Handler) RouterAll() {
+func (that *Handler) RouterAll(serv jun_server.Server) {
+	that.Serv = serv
 	for k, v := range that.routerMap {
 		that.router(k, v)
 	}
