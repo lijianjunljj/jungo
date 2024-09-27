@@ -1,16 +1,13 @@
 package server
 
 import (
-	"errors"
 	gate "github.com/lijianjunljj/jungo/jun_gate"
 	"github.com/lijianjunljj/jungo/jun_network/json"
 	"github.com/lijianjunljj/jungo/jun_node/conf"
 	"github.com/lijianjunljj/jungo/jun_node/msg"
-	"github.com/lijianjunljj/jungo/jun_node/node"
 	"github.com/lijianjunljj/jungo/jun_server"
 	"reflect"
 	"strconv"
-	"sync"
 )
 
 const (
@@ -18,28 +15,28 @@ const (
 )
 
 type State struct {
-	Nodes sync.Map
+	//Nodes sync.Map
 }
 
-func (s *State) AddNode(nd *node.Node) error {
-	_, ok := s.Nodes.Load(nd.Name)
-	if ok {
-		return errors.New("node already exists")
-	}
-	s.Nodes.Store(nd.Name, nd)
-	return nil
-}
-
-func (s *State) GetNode(nodeName string) (nd *node.Node) {
-	s.Nodes.Range(func(key, value any) bool {
-		nd = value.(*node.Node)
-		if nd.Name == nodeName {
-			return false
-		}
-		return true
-	})
-	return
-}
+//func (s *State) AddNode(nd *node.Node) error {
+//	_, ok := s.Nodes.Load(nd.Name)
+//	if ok {
+//		return errors.New("node already exists")
+//	}
+//	s.Nodes.Store(nd.Name, nd)
+//	return nil
+//}
+//
+//func (s *State) GetNode(nodeName string) (nd *node.Node) {
+//	s.Nodes.Range(func(key, value any) bool {
+//		if value.(*node.Node).Name == nodeName {
+//			nd = value.(*node.Node)
+//			return false
+//		}
+//		return true
+//	})
+//	return
+//}
 
 type Server struct {
 	jun_server.Server

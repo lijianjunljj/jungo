@@ -28,7 +28,7 @@ func init() {
 		jun_log.Fatal("%v", err)
 	}
 	NodeName = NodeConf.NodeName
-	IsCenter = NodeConf.IsCenter
+	//IsCenter = NodeConf.IsCenter
 	CenterNodeHost = NodeConf.CenterNodeHost
 	Cookie = NodeConf.Cookie
 	jun_log.Debug("初始化节点配置成功：%v", NodeConf)

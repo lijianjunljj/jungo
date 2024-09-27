@@ -7,23 +7,25 @@ import (
 	"github.com/lijianjunljj/jungo/jun_node"
 	"github.com/lijianjunljj/jungo/jun_node/conf"
 	"github.com/lijianjunljj/jungo/jun_server"
+	"github.com/zeromicro/go-zero/core/stat"
 	"time"
 )
 
 func main() {
+	stat.DisableLog()
 
 	jun_boot.Run(func() {
 		jun_node.Start()
 		Start()
-		if conf.NodeName == "node2" {
-			time.Sleep(10 * time.Second)
+		fmt.Println("conf.NodeName :", conf.NodeName)
+		if conf.NodeName == "node2" || conf.NodeName == "node3" {
+			time.Sleep(5 * time.Second)
 			ret := jun_node.Call("node1", "TestServer", "test_call", "hello world!")
 			jun_log.Debug("ret:%v", ret.Replay)
 			jun_node.Cast("node1", "TestServer", "test_cast", "cast message!")
+			fmt.Println("1111111111111")
 		}
-
 	})
-
 }
 
 type TestServer struct {
@@ -45,6 +47,7 @@ func (that *TestServer) Start(interface{}) {
 }
 func (that *TestServer) RegisterEvent() {
 	that.RegisterCall("test_call", func(iState interface{}, args ...interface{}) *jun_server.CallRet {
+		fmt.Println("test_call:", args[0])
 		return &jun_server.CallRet{Replay: args[0]}
 	})
 	that.RegisterCast("test_cast", func(iState interface{}, args ...interface{}) {
@@ -52,4 +55,6 @@ func (that *TestServer) RegisterEvent() {
 	})
 }
 func (that *TestServer) Terminate(interface{}) {
+
+	fmt.Println("TestServer Terminate.....")
 }

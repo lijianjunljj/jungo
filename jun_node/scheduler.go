@@ -40,13 +40,13 @@ func (that *Scheduler) Start(interface{}) {
 
 	fmt.Println("port:", port)
 	if port != "" {
-		if conf.IsCenter {
+		if conf.CenterNodeHost == "" {
 			jun_log.Debug("开始启动中心节点")
 		} else {
 			jun_log.Debug("开始启动主节点")
 		}
 		server.Start()
-		if !conf.IsCenter && conf.CenterNodeHost != "" {
+		if conf.CenterNodeHost != "" {
 			client.Start(conf.CenterNodeHost)
 		}
 	} else {

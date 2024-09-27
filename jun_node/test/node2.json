@@ -1,6 +1,6 @@
 {
   "NodeName": "node2",
   "IsCenter": false,
-  "CenterNodeHost": "",
+  "CenterNodeHost": "121.4.60.27",
   "Cookie": ""
 }

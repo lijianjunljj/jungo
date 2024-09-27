@@ -1,6 +1,7 @@
 package client
 
 import (
+	"github.com/lijianjunljj/gocommon/logging"
 	"github.com/lijianjunljj/gocommon/misc"
 	"github.com/lijianjunljj/jungo/jun_log"
 	"github.com/lijianjunljj/jungo/jun_node/msg"
@@ -26,7 +27,12 @@ func NewCaller(nodeName, distName, key string, data interface{}) *Caller {
 }
 
 func (that *Caller) Start(interface{}) {
-	that.client.WsClientAgent.SendMsg(that.callMsg)
+
+	if that.client != nil {
+		that.client.WsClientAgent.SendMsg(that.callMsg)
+	} else {
+		logging.Error("client is nil")
+	}
 
 }
 func (that *Caller) RegisterEvent() {

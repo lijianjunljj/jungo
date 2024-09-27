@@ -5,8 +5,8 @@ import (
 )
 
 var (
-	NodeName                = "local"
-	IsCenter                = false
+	NodeName = "local"
+	//IsCenter                = false
 	CenterNodeHost          = "127.0.0.1"
 	Cookie                  = "123abc456*"
 	ServerPort              = 4321

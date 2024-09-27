@@ -7,6 +7,7 @@ import (
 	"github.com/lijianjunljj/jungo/jun_network/json"
 	"github.com/lijianjunljj/jungo/jun_node/conf"
 	"github.com/lijianjunljj/jungo/jun_node/msg"
+	"github.com/lijianjunljj/jungo/jun_node/node"
 	"github.com/lijianjunljj/jungo/jun_server"
 	"reflect"
 	"runtime/debug"
@@ -71,7 +72,7 @@ func (that *Client) RegisterEvent() {
 		wsa := args[0].(*network.WsClientAgent)
 		fmt.Println("iState:", iState)
 		cookie := conf.Cookie
-		err := wsa.SendMsg(&msg.LoginTos{Cookie: cookie})
+		err := wsa.SendMsg(&msg.LoginTos{Cookie: cookie, NodeName: conf.NodeName})
 		if err != nil {
 			fmt.Println("err:", err)
 			return
@@ -87,10 +88,16 @@ func (that *Client) RegisterEvent() {
 				jun_server.Cast(m.SessionId, "reply", callRet)
 				return
 			}
+			fmt.Println("m.SrcNodeName:", m.SrcNodeName)
+			distNode := node.GetNode(m.SrcNodeName)
+			fmt.Println("distNode:", distNode)
+			if distNode != nil {
+				distNode.SendMsg(m)
+			}
 			break
-		case msg.CallTransportTypeEnter:
-			wsa.SendMsg(m)
-			break
+			//case msg.CallTransportTypeEnter:
+			//	wsa.SendMsg(m)
+			//	break
 		}
 
 	})

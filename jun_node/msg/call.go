@@ -1,6 +1,7 @@
 package msg
 
 import (
+	"fmt"
 	"github.com/lijianjunljj/jungo/jun_node/conf"
 	"github.com/lijianjunljj/jungo/jun_server"
 )
@@ -24,7 +25,9 @@ type Call struct {
 }
 
 func (that *Call) TransportToBack() {
+	fmt.Println("that.DistModName, that.Key, that.Msg:", that.DistModName, that.Key, that.Msg)
 	callRet := jun_server.Call(that.DistModName, that.Key, that.Msg)
+	fmt.Println("callRet:", callRet)
 	that.SetTransportToBack()
 	that.Reply = callRet
 }

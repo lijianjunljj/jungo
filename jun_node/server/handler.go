@@ -22,11 +22,10 @@ func (that *Server) HandleLogin(iState interface{}, args ...interface{}) {
 	arg := args[0].([]interface{})
 	a := arg[1].(gate.Agent)
 	m := arg[0].(*msg.LoginTos)
-	fmt.Println(a, m)
-	state := iState.(*State)
+	fmt.Println("m.NodeName:", m.NodeName)
 	nd := &node.Node{Name: m.NodeName, Agent: a}
 	a.SetUserData(nd)
-	err := state.AddNode(nd)
+	err := node.AddNode(nd)
 	if err != nil {
 		nd.SendMsg(&msg.MsgComToc{Code: 1, Msg: err.Error()})
 		return
@@ -47,22 +46,25 @@ func (that *Server) msgProcess(iState interface{}, a gate.Agent, m msg.IMsg) {
 	iNode := a.UserData()
 	_ = iNode.(*node.Node)
 
-	state := iState.(*State)
 	var distNode *node.Node
 	transportType := m.GetTransportType()
 	distNodeName := m.GetDistNodeName()
 	srcNodeName := m.GetSrcNodeName()
+	fmt.Println("transportType,srcNodeName,distNodeName:", transportType, srcNodeName, distNodeName)
+
 	switch transportType {
 	case msg.CallTransportTypeEnter:
 		if distNodeName == conf.NodeName {
 			m.TransportToBack()
+
+			fmt.Println("mm:", m)
 			a.WriteMsg(m)
 			return
 		}
-		distNode = state.GetNode(distNodeName)
+		distNode = node.GetNode(distNodeName)
 		break
 	case msg.CallTransportTypeBack:
-		distNode = state.GetNode(srcNodeName)
+		distNode = node.GetNode(srcNodeName)
 		break
 	}
 	if distNode != nil {
