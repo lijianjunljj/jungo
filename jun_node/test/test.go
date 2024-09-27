@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"github.com/lijianjunljj/jungo/jun_boot"
 	"github.com/lijianjunljj/jungo/jun_log"
 	"github.com/lijianjunljj/jungo/jun_node"
@@ -18,6 +19,7 @@ func main() {
 			time.Sleep(10 * time.Second)
 			ret := jun_node.Call("node1", "TestServer", "test_call", "hello world!")
 			jun_log.Debug("ret:%v", ret.Replay)
+			jun_node.Cast("node1", "TestServer", "test_cast", "cast message!")
 		}
 
 	})
@@ -44,6 +46,9 @@ func (that *TestServer) Start(interface{}) {
 func (that *TestServer) RegisterEvent() {
 	that.RegisterCall("test_call", func(iState interface{}, args ...interface{}) *jun_server.CallRet {
 		return &jun_server.CallRet{Replay: args[0]}
+	})
+	that.RegisterCast("test_cast", func(iState interface{}, args ...interface{}) {
+		fmt.Println("test_cast args:", args)
 	})
 }
 func (that *TestServer) Terminate(interface{}) {

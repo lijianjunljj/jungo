@@ -3,7 +3,6 @@ package msg
 import (
 	"github.com/lijianjunljj/jungo/jun_network/json"
 	"github.com/lijianjunljj/jungo/jun_node/conf"
-	"github.com/lijianjunljj/jungo/jun_server"
 )
 
 const (
@@ -16,8 +15,8 @@ func NewProcessor() *json.Processor {
 	Processor.Register(&LoginTos{})
 	Processor.Register(&LoginToc{})
 	Processor.Register(&Call{})
+	Processor.Register(&Cast{})
 	Processor.Register(&MsgComToc{})
-
 	return Processor
 }
 
@@ -34,33 +33,42 @@ type LoginToc struct {
 	MsgComToc
 }
 
-func NewCallMsg(sessionId, nodeName, distName, key string, data interface{}) *Call {
-	return &Call{SessionId: sessionId,
-		Key:           key,
-		SrcNodeName:   conf.NodeName,
-		DistNodeName:  nodeName,
-		DistModName:   distName,
-		TransportType: CallTransportTypeEnter,
-		Msg:           data}
+type IMsg interface {
+	IsTargetNode() bool
+	GetTransportNode() string
+	SetTransportToBack()
+	GetTransportType() int
+	GetDistNodeName() string
+	GetSrcNodeName() string
+	TransportToBack()
 }
 
-type Call struct {
-	TransportType int8
+type Msg struct {
+	TransportType int
 	Key           string
 	SessionId     string
 	SrcNodeName   string
 	DistNodeName  string
 	DistModName   string
 	Msg           interface{}
-	Reply         interface{}
 }
 
-func (that *Call) IsTargetNode() bool {
+func (that *Msg) GetTransportType() int {
+	return that.TransportType
+}
+func (that *Msg) GetDistNodeName() string {
+	return that.DistNodeName
+}
+func (that *Msg) GetSrcNodeName() string {
+	return that.SrcNodeName
+}
+
+func (that *Msg) IsTargetNode() bool {
 	nodeName := that.GetTransportNode()
 	return nodeName == conf.NodeName
 }
 
-func (that *Call) GetTransportNode() string {
+func (that *Msg) GetTransportNode() string {
 	switch that.TransportType {
 	case CallTransportTypeEnter:
 		return that.DistNodeName
@@ -69,8 +77,6 @@ func (that *Call) GetTransportNode() string {
 	}
 	return ""
 }
-func (that *Call) TransportToBack() {
-	callRet := jun_server.Call(that.DistModName, that.Key, that.Msg)
+func (that *Msg) SetTransportToBack() {
 	that.TransportType = CallTransportTypeBack
-	that.Reply = callRet
 }

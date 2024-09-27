@@ -14,6 +14,8 @@ func (that *Server) InitHandler() {
 	// 向当前模块（game 模块）注册 Hello 消息的消息处理函数 handleHello
 	that.handler(&msg.LoginTos{}, that.HandleLogin)
 	that.handler(&msg.Call{}, that.HandleCall)
+	that.handler(&msg.Cast{}, that.HandleCast)
+
 }
 func (that *Server) HandleLogin(iState interface{}, args ...interface{}) {
 	jun_log.Debug("HandleLogin....", args[0])
@@ -38,23 +40,29 @@ func (that *Server) HandleCall(iState interface{}, args ...interface{}) {
 	a := arg[1].(gate.Agent)
 	m := arg[0].(*msg.Call)
 	fmt.Println(a, m)
+	that.msgProcess(iState, a, m)
+}
 
+func (that *Server) msgProcess(iState interface{}, a gate.Agent, m msg.IMsg) {
 	iNode := a.UserData()
 	_ = iNode.(*node.Node)
 
 	state := iState.(*State)
 	var distNode *node.Node
-	switch m.TransportType {
+	transportType := m.GetTransportType()
+	distNodeName := m.GetDistNodeName()
+	srcNodeName := m.GetSrcNodeName()
+	switch transportType {
 	case msg.CallTransportTypeEnter:
-		if m.DistNodeName == conf.NodeName {
+		if distNodeName == conf.NodeName {
 			m.TransportToBack()
 			a.WriteMsg(m)
 			return
 		}
-		distNode = state.GetNode(m.DistNodeName)
+		distNode = state.GetNode(distNodeName)
 		break
 	case msg.CallTransportTypeBack:
-		distNode = state.GetNode(m.SrcNodeName)
+		distNode = state.GetNode(srcNodeName)
 		break
 	}
 	if distNode != nil {
@@ -64,8 +72,16 @@ func (that *Server) HandleCall(iState interface{}, args ...interface{}) {
 			client.NodeClient.WsClientAgent.SendMsg(m)
 		}
 	}
-
 }
+
+func (that *Server) HandleCast(iState interface{}, args ...interface{}) {
+	jun_log.Debug("HandleCast....")
+	arg := args[0].([]interface{})
+	a := arg[1].(gate.Agent)
+	m := arg[0].(*msg.Cast)
+	that.msgProcess(iState, a, m)
+}
+
 func rpcNewAgent(state interface{}, args ...interface{}) {
 	fmt.Println("args:", args)
 	a := args[0].(gate.Agent)
