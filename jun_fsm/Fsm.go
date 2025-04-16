@@ -3,9 +3,10 @@ package jun_fsm
 
 import (
 	"fmt"
-	"github.com/lijianjunljj/jungo/jun_server"
 	"sync"
 	"time"
+
+	"github.com/lijianjunljj/jungo/jun_server"
 )
 
 type ExitSig struct {
@@ -17,19 +18,19 @@ func NewFsm(data *CustomData, states []*State) *Fsm {
 	data.State = states[0]
 	return &Fsm{
 		skipStateIndex: -1,
-		loopState: &LoopState{customData: data},
-		states:    states,
+		loopState:      &LoopState{customData: data},
+		states:         states,
 	}
 }
 
 type Fsm struct {
 	jun_server.Server
-	lock          sync.RWMutex
-	loopState     *LoopState
-	currSateIndex int
-	states        []*State
-	oldStates     []*State
-	isInit        bool
+	lock           sync.RWMutex
+	loopState      *LoopState
+	currSateIndex  int
+	states         []*State
+	oldStates      []*State
+	isInit         bool
 	skipStateIndex int
 }
 
@@ -42,8 +43,8 @@ func (that *Fsm) GetCurrentState() *State {
 	return newState
 }
 func (that *Fsm) UnshiftState(state *State) {
-	that.states = append([]*State{state},that.states...)
-	that.currSateIndex ++
+	that.states = append([]*State{state}, that.states...)
+	that.currSateIndex++
 }
 func (that *Fsm) RemoveState(name string) {
 	var newStates []*State
@@ -60,8 +61,24 @@ func (that *Fsm) RemoveState(name string) {
 	that.states = newStates
 }
 
+func (that *Fsm) SetState(name string) {
+	hasFound := false
+	for i, v := range that.states {
+		if v.Name == name {
+			that.skipStateIndex = i
+			state := that.states[that.currSateIndex]
+			state.LeftTime = 0
+			hasFound = true
+			break
+		}
+	}
+	if !hasFound {
+		fmt.Println("SetState: 状态不存在")
+	}
+}
+
 func (that *Fsm) NextState() {
-	fmt.Println("NextState:",that.states,that.currSateIndex)
+	fmt.Println("NextState:", that.states, that.currSateIndex)
 	state := that.states[that.currSateIndex]
 
 	if state.hookOption.EndFunc != nil {
@@ -72,7 +89,7 @@ func (that *Fsm) NextState() {
 	if that.skipStateIndex > -1 {
 		that.currSateIndex = that.skipStateIndex
 		that.skipStateIndex = -1
-	}else{
+	} else {
 		if that.currSateIndex >= len(that.states)-1 {
 			that.currSateIndex = 0
 		} else {
