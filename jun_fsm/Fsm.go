@@ -46,6 +46,7 @@ func (that *Fsm) UnshiftState(state *State) {
 	that.states = append([]*State{state}, that.states...)
 	that.currSateIndex++
 }
+
 func (that *Fsm) RemoveState(name string) {
 	var newStates []*State
 	currIndex := 0
@@ -61,27 +62,11 @@ func (that *Fsm) RemoveState(name string) {
 	that.states = newStates
 }
 
-func (that *Fsm) SetState(name string) {
-	hasFound := false
-	for i, v := range that.states {
-		if v.Name == name {
-			that.skipStateIndex = i
-			state := that.states[that.currSateIndex]
-			state.LeftTime = 0
-			hasFound = true
-			break
-		}
-	}
-	if !hasFound {
-		fmt.Println("SetState: 状态不存在")
-	}
-}
-
-func (that *Fsm) NextState() {
+func (that *Fsm) nextState() {
 	fmt.Println("NextState:", that.states, that.currSateIndex)
 	state := that.states[that.currSateIndex]
 
-	if state.hookOption.EndFunc != nil {
+	if state.hookOption != nil {
 		state.hookOption.EndFunc(that, state, that.loopState.customData.Data)
 	}
 
@@ -99,22 +84,12 @@ func (that *Fsm) NextState() {
 	newState = that.states[that.currSateIndex]
 	that.loopState.customData.State = newState
 	newState.Reset()
-	if newState.hookOption.StartFunc != nil {
+	if newState.hookOption != nil {
 		newState.hookOption.StartFunc(that, newState, that.loopState.customData.Data)
 	}
 	if that.loopState.customData != nil {
 		that.loopState.customData.CallFuncOption.StatusChangeFunc(that, state, newState, that.loopState.customData.Data)
 	}
-}
-func (that *Fsm) SwitchStates(states []*State) {
-	that.oldStates = []*State{}
-	if that.states == nil {
-		for _, v := range that.states {
-			that.oldStates = append(that.oldStates, v)
-		}
-	}
-	that.currSateIndex = 0
-	that.states = states
 }
 
 func (that *Fsm) Start(arg interface{}) {
@@ -128,35 +103,193 @@ func (s *Fsm) RegisterEvent() {
 func (s *Fsm) HandlerLoop(state interface{}, args ...interface{}) {
 	data := args[0]
 	jun_server.SendAfter(1*time.Second, state.(string), "loop", data)
-	s.Loop()
+	s.loop()
 }
 
 func (s *Fsm) Terminate(data interface{}) {
 	fmt.Println("Fsm Terminate:", data)
 }
-func (that *Fsm) ChangeState(stateIndex int) {
-	state := that.states[that.currSateIndex]
-	that.skipStateIndex = stateIndex
-	state.LeftTime = 0
 
+// JumpToNextState 立即跳转到下一个状态（带锁保护）
+// skipEndFunc: 如果为 true，则跳过当前状态的 EndFunc 调用（用于在 StartFunc 中调用时避免递归）
+func (that *Fsm) JumpToNextState(skipEndFunc ...bool) error {
+
+	if len(that.states) == 0 {
+		return fmt.Errorf("没有可用状态")
+	}
+
+	// 获取当前状态
+	currentState := that.states[that.currSateIndex]
+
+	// 判断是否跳过 EndFunc（默认不跳过）
+	shouldSkipEndFunc := false
+	if len(skipEndFunc) > 0 {
+		shouldSkipEndFunc = skipEndFunc[0]
+	}
+
+	// 执行当前状态的EndFunc（除非明确要求跳过）
+	if !shouldSkipEndFunc && currentState.hookOption != nil {
+		currentState.hookOption.EndFunc(that, currentState, that.loopState.customData.Data)
+	}
+
+	// 计算下一个状态索引
+	var nextIndex int
+	if that.currSateIndex >= len(that.states)-1 {
+		nextIndex = 0
+	} else {
+		nextIndex = that.currSateIndex + 1
+	}
+
+	// 切换到下一个状态
+	that.currSateIndex = nextIndex
+	nextState := that.states[that.currSateIndex]
+	that.loopState.customData.State = nextState
+	nextState.Reset()
+
+	// 执行下一个状态的StartFunc
+	if nextState.hookOption != nil {
+		nextState.hookOption.StartFunc(that, nextState, that.loopState.customData.Data)
+	}
+
+	// 触发状态变更回调
+	if that.loopState.customData != nil {
+		that.loopState.customData.CallFuncOption.StatusChangeFunc(that, currentState, nextState, that.loopState.customData.Data)
+	}
+
+	return nil
 }
-func (that *Fsm) Loop() {
+
+// JumpToState 立即跳转到指定名称的状态（带锁保护）
+// skipEndFunc: 如果为 true，则跳过当前状态的 EndFunc 调用（用于在 StartFunc 中调用时避免递归）
+func (that *Fsm) JumpToState(name string, skipEndFunc ...bool) error {
+	fmt.Println("JumpToState:", name)
+
+	fmt.Println("11111111111")
+	if len(that.states) == 0 {
+		return fmt.Errorf("没有可用状态")
+	}
+
+	// 查找目标状态
+	targetIndex := -1
+	for i, v := range that.states {
+		if v.Name == name {
+			targetIndex = i
+			break
+		}
+	}
+	fmt.Println("targetIndex:", targetIndex)
+
+	if targetIndex == -1 {
+		return fmt.Errorf("状态 %s 不存在", name)
+	}
+
+	// 如果已经是目标状态，直接返回
+	if that.currSateIndex == targetIndex {
+		return nil
+	}
+
+	// 获取当前状态
+	currentState := that.states[that.currSateIndex]
+	fmt.Println("currentState:", currentState.Name)
+
+	// 判断是否跳过 EndFunc（默认不跳过）
+	shouldSkipEndFunc := false
+	if len(skipEndFunc) > 0 {
+		shouldSkipEndFunc = skipEndFunc[0]
+	}
+
+	// 执行当前状态的EndFunc（除非明确要求跳过）
+	if !shouldSkipEndFunc && currentState.hookOption != nil {
+		currentState.hookOption.EndFunc(that, currentState, that.loopState.customData.Data)
+	}
+
+	// 切换到目标状态
+	that.currSateIndex = targetIndex
+	targetState := that.states[that.currSateIndex]
+	that.loopState.customData.State = targetState
+	targetState.Reset()
+
+	// 执行目标状态的StartFunc
+	if targetState.hookOption != nil {
+		targetState.hookOption.StartFunc(that, targetState, that.loopState.customData.Data)
+	}
+
+	// 触发状态变更回调
+	if that.loopState.customData != nil {
+		that.loopState.customData.CallFuncOption.StatusChangeFunc(that, currentState, targetState, that.loopState.customData.Data)
+	}
+
+	return nil
+}
+
+// JumpToStateByIndex 立即跳转到指定索引的状态（带锁保护）
+// skipEndFunc: 如果为 true，则跳过当前状态的 EndFunc 调用（用于在 StartFunc 中调用时避免递归）
+func (that *Fsm) JumpToStateByIndex(index int, skipEndFunc ...bool) error {
+
+	if len(that.states) == 0 {
+		return fmt.Errorf("没有可用状态")
+	}
+
+	if index < 0 || index >= len(that.states) {
+		return fmt.Errorf("状态索引 %d 超出范围 [0, %d)", index, len(that.states))
+	}
+
+	// 如果已经是目标状态，直接返回
+	if that.currSateIndex == index {
+		return nil
+	}
+
+	// 获取当前状态
+	currentState := that.states[that.currSateIndex]
+
+	// 判断是否跳过 EndFunc（默认不跳过）
+	shouldSkipEndFunc := false
+	if len(skipEndFunc) > 0 {
+		shouldSkipEndFunc = skipEndFunc[0]
+	}
+
+	// 执行当前状态的EndFunc（除非明确要求跳过）
+	if !shouldSkipEndFunc && currentState.hookOption != nil {
+		currentState.hookOption.EndFunc(that, currentState, that.loopState.customData.Data)
+	}
+
+	// 切换到目标状态
+	that.currSateIndex = index
+	targetState := that.states[that.currSateIndex]
+	that.loopState.customData.State = targetState
+	targetState.Reset()
+
+	// 执行目标状态的StartFunc
+	if targetState.hookOption != nil {
+		targetState.hookOption.StartFunc(that, targetState, that.loopState.customData.Data)
+	}
+
+	// 触发状态变更回调
+	if that.loopState.customData != nil {
+		that.loopState.customData.CallFuncOption.StatusChangeFunc(that, currentState, targetState, that.loopState.customData.Data)
+	}
+
+	return nil
+}
+func (that *Fsm) loop() {
 	if len(that.states) > that.currSateIndex {
 		state := that.states[that.currSateIndex]
 		//fmt.Println("leftTime:", state)
 		if !that.isInit {
 			that.isInit = true
-			state.hookOption.StartFunc(that, state, that.loopState.customData.Data)
+			if state.hookOption != nil {
+				state.hookOption.StartFunc(that, state, that.loopState.customData.Data)
+			}
 		}
 
 		if state.LeftTime == -1 {
-			if state.hookOption.LoopFunc != nil {
+			if state.hookOption != nil {
 				state.hookOption.LoopFunc(that, state, that.loopState.customData.Data)
 			}
 		} else if state.LeftTime <= 0 {
-			that.NextState()
+			that.nextState()
 		} else {
-			if state.hookOption.LoopFunc != nil {
+			if state.hookOption != nil {
 				state.hookOption.LoopFunc(that, state, that.loopState.customData.Data)
 			}
 			state.LeftTime--
