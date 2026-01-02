@@ -3,11 +3,12 @@ package jun_server
 import (
 	"errors"
 	"fmt"
-	"github.com/lijianjunljj/jungo/jun_log"
-	"github.com/lijianjunljj/jungo/jun_timer"
 	"runtime/debug"
 	"sync"
 	"time"
+
+	"github.com/lijianjunljj/jungo/jun_log"
+	"github.com/lijianjunljj/jungo/jun_timer"
 )
 
 type Server struct {
@@ -174,7 +175,7 @@ func (m *Module) loop(closeSig chan ExitSig) {
 	defer func() {
 		if msg := recover(); msg != nil {
 
-			fmt.Println("调用栈:%v", string(debug.Stack()), msg)
+			fmt.Printf("调用栈:%v,退出原因:%v\n", string(debug.Stack()), msg)
 			fmt.Println("进程Panic退出，执行Terminate,退出原因")
 
 			if closeSig != nil {

@@ -281,17 +281,14 @@ func (that *Fsm) loop() {
 				state.hookOption.StartFunc(that, state, that.loopState.customData.Data)
 			}
 		}
-
-		if state.LeftTime == -1 {
-			if state.hookOption != nil {
-				state.hookOption.LoopFunc(that, state, that.loopState.customData.Data)
-			}
+		if state.hookOption != nil {
+			state.hookOption.LoopFunc(that, state, that.loopState.customData.Data)
+		}
+		if state.LeftTime <= -1 {
+			return
 		} else if state.LeftTime <= 0 {
 			that.nextState()
 		} else {
-			if state.hookOption != nil {
-				state.hookOption.LoopFunc(that, state, that.loopState.customData.Data)
-			}
 			state.LeftTime--
 			if that.loopState.customData != nil {
 				that.loopState.customData.CallFuncOption.LoopFunc(that, state, that.loopState.customData.Data)
