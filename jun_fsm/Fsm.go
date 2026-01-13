@@ -48,17 +48,62 @@ func (that *Fsm) UnshiftState(state *State) {
 }
 
 func (that *Fsm) RemoveState(name string) {
-	var newStates []*State
-	currIndex := 0
-	for _, v := range that.states {
-		if v.Name != name {
-			if that.states[that.currSateIndex].Name == v.Name {
-				that.currSateIndex = currIndex
-			}
-			newStates = append(newStates, v)
-			currIndex++
+	that.lock.Lock()
+	defer that.lock.Unlock()
+
+	// 检查要删除的状态是否存在，并记录其索引
+	targetIndex := -1
+	for i, v := range that.states {
+		if v.Name == name {
+			targetIndex = i
+			break
 		}
 	}
+
+	// 如果状态不存在，直接返回
+	if targetIndex == -1 {
+		return
+	}
+
+	// 构建新的状态列表
+	var newStates []*State
+	for _, v := range that.states {
+		if v.Name != name {
+			newStates = append(newStates, v)
+		}
+	}
+
+	// 调整当前状态索引
+	if targetIndex < that.currSateIndex {
+		// 删除的是当前状态之前的状态，currSateIndex 需要减1
+		that.currSateIndex--
+	} else if targetIndex == that.currSateIndex {
+		// 删除的是当前状态
+		if len(newStates) == 0 {
+			// 没有剩余状态了
+			that.currSateIndex = 0
+		} else {
+			// 删除当前状态后，后面的状态会前移
+			// 如果原来有后续状态，索引不变（指向原来的下一个状态）
+			// 如果没有后续状态，索引需要减1（指向前一个状态）
+			if that.currSateIndex >= len(newStates) {
+				that.currSateIndex = len(newStates) - 1
+			}
+		}
+	}
+	// 如果 targetIndex > that.currSateIndex，删除的是当前状态之后的状态，currSateIndex 不变
+
+	// 确保索引有效
+	if len(newStates) > 0 {
+		if that.currSateIndex < 0 {
+			that.currSateIndex = 0
+		} else if that.currSateIndex >= len(newStates) {
+			that.currSateIndex = len(newStates) - 1
+		}
+	} else {
+		that.currSateIndex = 0
+	}
+
 	that.states = newStates
 }
 
@@ -281,14 +326,17 @@ func (that *Fsm) loop() {
 				state.hookOption.StartFunc(that, state, that.loopState.customData.Data)
 			}
 		}
-		if state.hookOption != nil {
-			state.hookOption.LoopFunc(that, state, that.loopState.customData.Data)
-		}
-		if state.LeftTime <= -1 {
-			return
+
+		if state.LeftTime == -1 {
+			if state.hookOption != nil {
+				state.hookOption.LoopFunc(that, state, that.loopState.customData.Data)
+			}
 		} else if state.LeftTime <= 0 {
 			that.nextState()
 		} else {
+			if state.hookOption != nil {
+				state.hookOption.LoopFunc(that, state, that.loopState.customData.Data)
+			}
 			state.LeftTime--
 			if that.loopState.customData != nil {
 				that.loopState.customData.CallFuncOption.LoopFunc(that, state, that.loopState.customData.Data)
