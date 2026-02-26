@@ -108,7 +108,6 @@ func (that *Fsm) RemoveState(name string) {
 }
 
 func (that *Fsm) nextState() {
-	fmt.Println("NextState:", that.states, that.currSateIndex)
 	state := that.states[that.currSateIndex]
 
 	if state.hookOption != nil {
