@@ -2,12 +2,13 @@ package network
 
 import (
 	"crypto/tls"
-	"github.com/gorilla/websocket"
-	"github.com/lijianjunljj/jungo/jun_log"
 	"net"
 	"net/http"
 	"sync"
 	"time"
+
+	"github.com/gorilla/websocket"
+	"github.com/lijianjunljj/jungo/jun_log"
 )
 
 type WSServer struct {
@@ -141,7 +142,7 @@ func (server *WSServer) Start() {
 	go func() {
 		err = httpServer.Serve(ln)
 		if err != nil {
-			jun_log.Fatal("websocket启动错误 %v:", err)
+			jun_log.Error("websocket启动错误 %v:", err)
 		}
 	}()
 }
